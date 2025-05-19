@@ -1,0 +1,84 @@
+﻿@page "/todo/upsert"
+@page "/todo/upsert/{id:int}"
+
+@using TodoWebApp.Services.Interfaces
+@using TodoWebApp.ViewModels
+
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject ITodoService TodoService
+
+<PageTitle>@(Id is null ? "Create " : "Edit ") To Do</PageTitle>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
+    <h1 class="my-4">@(Id is null ? "Create " : "Edit ") To Do</h1>
+    <MudPaper Class="pa-8">
+        <MudForm @ref="form" Model="@Model" @bind-IsValid="@success" @bind-Errors="@errors">
+            <MudTextField T="string" @bind-Value="Model.Title" Label="Title" Required="true" RequiredError="Title is required!" />
+            <MudTextField T="string" @bind-Value="Model.Description" Label="Description" Required="false" />      
+            
+            <div class="mt-4 d-flex justify-space-between">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(() => NavigationManager.NavigateTo("/"))">Cancel</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => HandleSaveClickAsync())">Save</MudButton>
+            </div>
+
+            @foreach (var error in errors)
+            {
+                <MudText Color="@Color.Error">@error</MudText>
+            }
+        </MudForm>
+    </MudPaper>
+
+</MudContainer>
+@code {
+    [Parameter]
+    public int? Id { get; set; } = null;
+
+    bool success;
+    string[] errors = { };
+
+    private MudForm? form; // Reference to the MudForm component
+
+    public TodoItemRequestModel Model { get; set; } = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id is not null)
+        {
+            var todoItem = await TodoService.GetByIdAsync(Id.Value);
+
+            if (todoItem != null)
+            {
+                Model = new TodoItemRequestModel
+                {
+                    Title = todoItem.Title,
+                    Description = todoItem.Description,
+                    IsCompleted = todoItem.IsCompleted
+                };
+            }
+        }
+    }
+
+    private async Task HandleSaveClickAsync()
+    {
+        if (form is null)
+        {
+            return;        
+        }        
+
+        await form.Validate();
+
+        if (form.IsValid)
+        {
+            if (Id is null)
+            {
+                await TodoService.CreateAsync(Model);
+            }
+            else
+            {
+                await TodoService.UpdateAsync(Id.Value, Model);
+            }
+
+            NavigationManager.NavigateTo("/");
+        }
+    }
+}

@@ -80,5 +80,29 @@ namespace TodoWebApi.Controllers
 
             return Ok(updatedTodoItem);
         }
+
+        [HttpPut("{id:int}/status")]
+        public async Task<ActionResult<TodoItemResponseDto>> ChangeStatusAsync(int id)
+        {
+            var todoItemDto = await todoService.GetByIdAsync(id);
+
+            if (todoItemDto == null)
+            {
+                return NotFound($"Todo item with id {id} not found.");
+            }
+
+            todoItemDto.IsCompleted = !todoItemDto.IsCompleted;
+
+            var updatedTodoItemDto = await todoService.UpdateAsync(todoItemDto);
+
+            if (updatedTodoItemDto == null)
+            {
+                return NotFound($"Todo item with id {id} not found.");
+            }
+
+            var updatedTodoItem = mapper.Map<TodoItemResponseDto>(updatedTodoItemDto);
+
+            return Ok(updatedTodoItem);
+        }
     }
 }
